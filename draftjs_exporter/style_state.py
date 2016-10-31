@@ -22,9 +22,10 @@ class StyleState():
     Receives inline_style commands, and generates the element's `style`
     attribute from those.
     """
-    def __init__(self, style_map):
+    def __init__(self, style_map, composite_decorators=None):
         self.styles = []
         self.style_map = style_map
+        self.composite_decorators = composite_decorators or []
 
     def apply(self, command):
         if command.name == 'start_inline_style':
@@ -57,12 +58,19 @@ class StyleState():
         return ''.join(sorted(rules))
 
     def add_node(self, element, text):
+
+        for deco in self.composite_decorators:
+            text = deco.process(text)
+
+        text_children = list(DOM.parse_html(
+            '<textnode>' + text + '</textnode>').body.children)
+
         if self.is_unstyled():
-            child = DOM.create_text_node(text)
-            DOM.append_child(element, child)
+            for child in text_children:
+                DOM.append_child(element, child)
         else:
-            tags = self.get_style_tags()
             child = element
+            tags = self.get_style_tags()
 
             # Nest the tags.
             # Set the text and style attribute (if any) on the deepest node.
@@ -74,7 +82,7 @@ class StyleState():
             style_value = self.get_style_value()
             if style_value:
                 DOM.set_attribute(child, 'style', style_value)
-
-            DOM.set_text_content(child, text)
+            for text_child in text_children:
+                DOM.append_child(child, text_child)
 
         return child

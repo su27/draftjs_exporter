@@ -15,7 +15,10 @@ class HTML():
     def __init__(self, config={}):
         self.entity_decorators = config.get('entity_decorators', {})
         self.wrapper_state = WrapperState(config.get('block_map', BLOCK_MAP))
-        self.style_state = StyleState(config.get('style_map', STYLE_MAP))
+        self.style_state = StyleState(
+            config.get('style_map', STYLE_MAP),
+            config.get('composite_decorators', []),
+        )
 
     def render(self, content_state):
         """
