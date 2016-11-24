@@ -7,40 +7,49 @@ from draftjs_exporter.style_state import StyleState
 from draftjs_exporter.wrapper_state import WrapperState
 
 
-class HTML():
+class HTML:
     """
     Entry point of the exporter. Combines entity, wrapper and style state
     to generate the right HTML nodes.
     """
-    def __init__(self, config={}):
+    def __init__(self, config=None):
+        if config is None:
+            config = {}
+
         self.entity_decorators = config.get('entity_decorators', {})
-        self.wrapper_state = WrapperState(config.get('block_map', BLOCK_MAP))
-        self.style_state = StyleState(
-            config.get('style_map', STYLE_MAP),
-            config.get('composite_decorators', []),
-        )
+        self.block_map = config.get('block_map', BLOCK_MAP)
+        self.style_map = config.get('style_map', STYLE_MAP)
+        self.composite_decorators = config.get('composite_decorators', [])
 
     def render(self, content_state):
         """
         Starts the export process on a given piece of content state.
         """
+        self.wrapper_state = WrapperState(self.block_map)
+        self.style_state = StyleState(self.style_map, self.composite_decorators)
         entity_map = content_state.get('entityMap', {})
 
         for block in content_state.get('blocks', []):
             self.render_block(block, entity_map)
 
+        self.wrapper_state.clean_up()
+
         return self.wrapper_state.to_string()
 
     def render_block(self, block, entity_map):
         element = self.wrapper_state.element_for(block)
-        entity_state = EntityState(element, self.entity_decorators, entity_map)
+        entity_state = EntityState(self.entity_decorators, entity_map)
 
         for (text, commands) in self.build_command_groups(block):
             for command in commands:
                 entity_state.apply(command)
                 self.style_state.apply(command)
 
-            self.style_state.add_node(entity_state.current_parent(), text)
+            style_node = self.style_state.create_node(
+                text,
+                block=block,
+                entity_stack=entity_state.entity_stack)
+            entity_state.render_entitities(element, style_node)
 
     def build_command_groups(self, block):
         """

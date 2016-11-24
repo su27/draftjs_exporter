@@ -10,13 +10,13 @@ _first_cap_re = re.compile(r'(.)([A-Z][a-z]+)')
 _all_cap_re = re.compile('([a-z0-9])([A-Z])')
 
 
-def camelToDash(camelCasedStr):
-    sub2 = _first_cap_re.sub(r'\1-\2', camelCasedStr)
+def camel_to_dash(camel_cased_str):
+    sub2 = _first_cap_re.sub(r'\1-\2', camel_cased_str)
     dashed_case_str = _all_cap_re.sub(r'\1-\2', sub2).lower()
     return dashed_case_str.replace('--', '-')
 
 
-class StyleState():
+class StyleState:
     """
     Handles the creation of inline styles on elements.
     Receives inline_style commands, and generates the element's `style`
@@ -36,7 +36,6 @@ class StyleState():
     def is_unstyled(self):
         return not self.styles
 
-    # TODO To unit test.
     def get_style_tags(self):
         tags = []
 
@@ -53,28 +52,43 @@ class StyleState():
             css_style = self.style_map.get(style, {})
             for prop in css_style.keys():
                 if prop != 'element':
-                    rules.append('{0}: {1};'.format(camelToDash(prop), css_style[prop]))
+                    rules.append('{0}: {1};'.format(camel_to_dash(prop), css_style[prop]))
 
         return ''.join(sorted(rules))
 
-    def add_node(self, element, text):
+    def get_decorated_text(self, text, block):
+        block_type = block.get('type') if block else None
+        while text:
+            for deco in self.composite_decorators:
+                match = deco.SEARCH_RE.search(text)
+                if match:
+                    begin, end = match.span()
+                    yield DOM.create_text_node(text[:begin])
+                    yield deco.replace(match, block_type)
+                    text = text[end:]
+                    break
+            else:
+                yield DOM.create_text_node(text)
+                return
 
-        for deco in self.composite_decorators:
-            text = deco.process(text, parent=element)
-
-        text_children = list(DOM.parse_html(
-            '<textnode>' + text + '</textnode>').body.children)
+    def create_node(self, text, block=None, entity_stack=None):
+        if entity_stack:
+            text_children = [DOM.create_text_node(text)]
+        else:
+            text_children = self.get_decorated_text(text, block)
 
         if self.is_unstyled():
+            node = DOM.create_document_fragment()
             for child in text_children:
-                DOM.append_child(element, child)
+                DOM.append_child(node, child)
         else:
-            child = element
             tags = self.get_style_tags()
+            node = DOM.create_element(tags[0])
+            child = node
 
             # Nest the tags.
             # Set the text and style attribute (if any) on the deepest node.
-            for tag in tags:
+            for tag in tags[1:]:
                 new_child = DOM.create_element(tag)
                 DOM.append_child(child, new_child)
                 child = new_child
@@ -85,4 +99,4 @@ class StyleState():
             for text_child in text_children:
                 DOM.append_child(child, text_child)
 
-        return child
+        return node

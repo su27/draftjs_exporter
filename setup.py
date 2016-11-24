@@ -24,7 +24,7 @@ testing_extras = [
 
     # For coverage and PEP8 linting
     'coverage>=4.1.0',
-    'flake8>=2.2.0',
+    'flake8>=3.2.0',
     'isort>=4.2.5',
 ]
 
@@ -48,7 +48,6 @@ setup(
     license='MIT',
     long_description=readme,
     classifiers=[
-        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',

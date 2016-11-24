@@ -3,10 +3,13 @@ from __future__ import absolute_import, unicode_literals
 
 # http://stackoverflow.com/a/22723724/1798491
 class Enum(object):
-    def __init__(self, tupleList):
-        self.tupleList = tupleList
+    def __init__(self, *elements):
+        self.elements = tuple(elements)
 
     def __getattr__(self, name):
+        if name not in self.elements:
+            raise AttributeError("'Enum' has no attribute '{}'".format(name))
+
         return name
 
 
@@ -27,6 +30,7 @@ class BLOCK_TYPES:
     ATOMIC = 'atomic'
     HORIZONTAL_RULE = 'horizontal-rule'
 
-ENTITY_TYPES = Enum(('LINK', 'IMAGE', 'TOKEN'))
 
-INLINE_STYLES = Enum(('BOLD', 'CODE', 'ITALIC', 'STRIKETHROUGH', 'UNDERLINE'))
+ENTITY_TYPES = Enum('LINK', 'IMAGE', 'TOKEN')
+
+INLINE_STYLES = Enum('BOLD', 'CODE', 'ITALIC', 'STRIKETHROUGH', 'UNDERLINE')

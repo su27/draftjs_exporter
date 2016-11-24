@@ -3,13 +3,10 @@ from __future__ import absolute_import, unicode_literals
 import unittest
 
 from draftjs_exporter.command import Command
-from draftjs_exporter.entities import Link
 from draftjs_exporter.html import HTML
 
 config = {
-    'entity_decorators': {
-        'LINK': Link
-    },
+    'entity_decorators': {},
     'block_map': {
         'header-one': {'element': 'h1'},
         'unordered-list-item': {
@@ -274,3 +271,47 @@ class TestHTML(unittest.TestCase):
                 Command('stop_text', 19)
             ]),
         ]))
+
+    def test_render(self):
+        self.assertEqual(self.exporter.render({
+            'entityMap': {},
+            'blocks': [
+                {
+                    'key': '5s7g9',
+                    'text': 'Header',
+                    'type': 'header-one',
+                    'depth': 0,
+                    'inlineStyleRanges': [],
+                    'entityRanges': []
+                },
+            ]
+        }), '<h1>Header</h1>')
+
+    def test_render_twice(self):
+        """Asserts no state is kept during renders."""
+        self.assertEqual(self.exporter.render({
+            'entityMap': {},
+            'blocks': [
+                {
+                    'key': '5s7g9',
+                    'text': 'Header',
+                    'type': 'header-one',
+                    'depth': 0,
+                    'inlineStyleRanges': [],
+                    'entityRanges': []
+                },
+            ]
+        }), '<h1>Header</h1>')
+        self.assertEqual(self.exporter.render({
+            'entityMap': {},
+            'blocks': [
+                {
+                    'key': '5s7g9',
+                    'text': 'Header',
+                    'type': 'header-one',
+                    'depth': 0,
+                    'inlineStyleRanges': [],
+                    'entityRanges': []
+                },
+            ]
+        }), '<h1>Header</h1>')

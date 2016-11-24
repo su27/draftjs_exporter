@@ -20,10 +20,10 @@ draftjs_exporter documentation
 * HTML attributes are added in alphabetical order.
 * `unstyled` blocks without text render as an empty element.
 * Inline ranges aiming the same offset and length are always rendered in the same order (alphabetical order of the tag name - `code`, `em`, `strong`).
+* Invalid attributes are left for the html5lib parser to handle.
 
 ### Unsupported markup
 
-* Nested blocks where nesting jumps one level of depth (depth = 0, then depth = 2).
 
 ## R&D notes
 

@@ -8,24 +8,18 @@ class EntityException(ExporterException):
     pass
 
 
-class EntityState():
-    def __init__(self, root_element, entity_decorators, entity_map):
+class EntityState:
+    def __init__(self, entity_decorators, entity_map):
         self.entity_decorators = entity_decorators
         self.entity_map = entity_map
 
-        stack_start = DOM.create_document_fragment()
-        DOM.append_child(root_element, stack_start)
-
-        self.entity_stack = [(stack_start, {})]
+        self.entity_stack = []
 
     def apply(self, command):
-        if (command.name == 'start_entity'):
+        if command.name == 'start_entity':
             self.start_command(command)
-        elif (command.name == 'stop_entity'):
+        elif command.name == 'stop_entity':
             self.stop_command(command)
-
-    def current_parent(self):
-        return self.entity_stack[-1][0]
 
     def get_entity_details(self, command):
         key = str(command.data)
@@ -37,28 +31,44 @@ class EntityState():
         return details
 
     def get_entity_decorator(self, entity_details):
-        type = entity_details.get('type')
-        decorator = self.entity_decorators.get(type)
+        type_ = entity_details.get('type')
+        decorator = self.entity_decorators.get(type_)
 
         if decorator is None:
-            raise EntityException('Decorator "%s" does not exist in entity_decorators' % type)
+            raise EntityException('Decorator "%s" does not exist in entity_decorators' % type_)
 
         return decorator
 
     def start_command(self, command):
         entity_details = self.get_entity_details(command)
-        decorator = self.get_entity_decorator(entity_details)
-
-        new_element = decorator.render(entity_details)
-        DOM.append_child(self.current_parent(), new_element)
-
-        self.entity_stack.append([new_element, entity_details])
+        self.entity_stack.append(entity_details)
 
     def stop_command(self, command):
         entity_details = self.get_entity_details(command)
-        expected_entity_details = self.entity_stack[-1][1]
+        expected_entity_details = self.entity_stack[-1]
 
         if expected_entity_details != entity_details:
             raise EntityException('Expected {0}, got {1}'.format(expected_entity_details, entity_details))
 
         self.entity_stack.pop()
+
+    def render_entitities(self, root_element, style_node):
+        stack_start = DOM.create_document_fragment()
+        DOM.append_child(root_element, stack_start)
+
+        element_stack = [stack_start]
+        new_element = stack_start
+
+        if len(self.entity_stack) == 0:
+            DOM.append_child(root_element, style_node)
+        else:
+            for entity_details in self.entity_stack:
+                decorator = self.get_entity_decorator(entity_details)
+
+                entity_details['children'] = style_node
+
+                new_element = decorator.render(entity_details)
+                DOM.append_child(element_stack[-1], new_element)
+                element_stack.append(new_element)
+
+        return new_element

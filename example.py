@@ -2,26 +2,96 @@
 
 from __future__ import absolute_import, unicode_literals
 
+import cgi
 import codecs
+import re
 
 from draftjs_exporter.constants import BLOCK_TYPES, ENTITY_TYPES
 from draftjs_exporter.defaults import BLOCK_MAP, STYLE_MAP
 from draftjs_exporter.dom import DOM
-from draftjs_exporter.entities import Image, Link, Null
 from draftjs_exporter.html import HTML
 
-# TODO Support dt/dd, hr, br, cite, mark, q, s, sub, sup, video?
+
+class Null:
+    def render(self, props):
+        return DOM.create_element()
+
+
+class Image:
+    def render(self, props):
+        data = props.get('data', {})
+
+        return DOM.create_element('img', {
+            'src': data.get('src'),
+            'width': data.get('width'),
+            'height': data.get('height'),
+            'alt': data.get('alt'),
+        })
+
+
+class Link:
+    def render(self, props):
+        data = props.get('data', {})
+        href = data['url']
+
+        return DOM.create_element('a', {'href': href}, props['children'])
+
+
+class URLDecorator:
+    """
+    Replace plain urls with actual hyperlinks.
+    """
+    SEARCH_RE = re.compile(r'(http://|https://|www\.)([a-zA-Z0-9\.\-%/\?&_=\+#:~!,\'\*\^$]+)')
+
+    def __init__(self, new_window=False):
+        self.new_window = new_window
+
+    def replace(self, match, block_type):
+        protocol = match.group(1)
+        href = match.group(2)
+        href = protocol + href
+        if block_type == BLOCK_TYPES.CODE:
+            return href
+
+        text = cgi.escape(href)
+        if href.startswith("www"):
+            href = "http://" + href
+        props = {'href': href}
+        if self.new_window:
+            props.update(target="_blank")
+
+        return DOM.create_element('a', props, text)
+
+
+class HashTagDecorator:
+    """
+    Wrap hash tags in spans with specific class.
+    """
+
+    SEARCH_RE = re.compile(r'#\w+')
+
+    def replace(self, match, block_type):
+        if block_type == BLOCK_TYPES.CODE:
+            return match.group(0)
+
+        return DOM.create_element('em', {'class': 'hash_tag'}, match.group(0))
+
+
 config = {
     'entity_decorators': {
         ENTITY_TYPES.LINK: Link(),
         ENTITY_TYPES.IMAGE: Image(),
         ENTITY_TYPES.TOKEN: Null(),
     },
+    'composite_decorators': [
+        URLDecorator(),
+        HashTagDecorator(),
+    ],
     # Extend/override the default block map.
     'block_map': dict(BLOCK_MAP, **{
         BLOCK_TYPES.HEADER_TWO: {
             'element': ['h2', {'className': 'c-amazing-heading'}],
-            'wrapper': 'hgroup',
+            'wrapper': 'div',
         },
         BLOCK_TYPES.UNORDERED_LIST_ITEM: {
             'element': 'li',
@@ -80,7 +150,7 @@ content_state = {
         },
         {
             'key': '5384u',
-            'text': 'Everyone 🍺 Springload applies the best principles of UX to their work.',
+            'text': 'Everyone 🍺 Springload applies the best #principles of UX to their work. (https://www.springload.co.nz/work/nz-festival/)',
             'type': 'blockquote',
             'depth': 0,
             'inlineStyleRanges': [],
@@ -88,7 +158,7 @@ content_state = {
         },
         {
             'key': 'eelkd',
-            'text': 'The design decisions we make building tools and services for your customers are based on empathy for what your customers need.',
+            'text': 'The design decisions we make building #tools and #services for your customers are based on empathy for what your customers need.',
             'type': 'unstyled',
             'depth': 0,
             'inlineStyleRanges': [],
@@ -275,4 +345,4 @@ print(pretty)
 
 # Output to a file
 with codecs.open('example.html', 'w', 'utf-8') as file:
-    file.write('<meta charset="utf-8" />\n' + pretty)
+    file.write('<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Test</title></head><body>\n{pretty}\n</body></html>'.format(pretty=pretty))
