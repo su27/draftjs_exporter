@@ -18,7 +18,7 @@ def Soup(raw_str):
     """
     Wrapper around BeautifulSoup to keep the code DRY.
     """
-    return BeautifulSoup(raw_str, 'html5lib')
+    return BeautifulSoup(raw_str, 'lxml')
 
 
 class DOM(object):
@@ -43,6 +43,9 @@ class DOM(object):
         )
         https://facebook.github.io/react/docs/top-level-api.html#react.createelement
         """
+        if len(children) == 1 and isinstance(children[0], (list, tuple)):
+            children = children[0]
+
         if props is None:
             props = {}
 

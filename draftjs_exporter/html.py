@@ -45,11 +45,11 @@ class HTML:
                 entity_state.apply(command)
                 self.style_state.apply(command)
 
-            style_node = self.style_state.create_node(
+            style_nodes = self.style_state.create_nodes(
                 text,
                 block=block,
                 entity_stack=entity_state.entity_stack)
-            entity_state.render_entitities(element, style_node)
+            entity_state.render_entitities(element, style_nodes)
 
     def build_command_groups(self, block):
         """

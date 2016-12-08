@@ -71,16 +71,15 @@ class StyleState:
                 yield DOM.create_text_node(text)
                 return
 
-    def create_node(self, text, block=None, entity_stack=None):
+    def create_nodes(self, text, block=None, entity_stack=None):
         if entity_stack:
             text_children = [DOM.create_text_node(text)]
         else:
             text_children = self.get_decorated_text(text, block)
 
         if self.is_unstyled():
-            node = DOM.create_document_fragment()
-            for child in text_children:
-                DOM.append_child(node, child)
+            return list(text_children)
+
         else:
             tags = self.get_style_tags()
             node = DOM.create_element(tags[0])
@@ -99,4 +98,4 @@ class StyleState:
             for text_child in text_children:
                 DOM.append_child(child, text_child)
 
-        return node
+            return [node]
