@@ -3,22 +3,17 @@ from __future__ import absolute_import, unicode_literals
 import inspect
 import re
 
-from bs4 import BeautifulSoup
+from lxml import etree, html
 
 # Python 2/3 unicode compatibility hack.
 # See http://stackoverflow.com/questions/6812031/how-to-make-unicode-string-with-python3
+XLINK = 'http://www.w3.org/1999/xlink'
+
 try:
     UNICODE_EXISTS = bool(type(unicode))
 except NameError:
     def unicode(s):
         return str(s)
-
-
-def Soup(raw_str):
-    """
-    Wrapper around BeautifulSoup to keep the code DRY.
-    """
-    return BeautifulSoup(raw_str, 'lxml')
 
 
 class DOM(object):
@@ -27,10 +22,7 @@ class DOM(object):
     """
     @staticmethod
     def create_tag(type_, attributes=None):
-        if attributes is None:
-            attributes = {}
-
-        return Soup('').new_tag(type_, **attributes)
+        return etree.Element(type_, attrib=attributes)
 
     @staticmethod
     def create_element(type_=None, props=None, *children):
@@ -43,39 +35,28 @@ class DOM(object):
         )
         https://facebook.github.io/react/docs/top-level-api.html#react.createelement
         """
-        if len(children) == 1 and isinstance(children[0], (list, tuple)):
+        if not type_:
+            return DOM.create_document_fragment()
+
+        if len(children) and isinstance(children[0], (list, tuple)):
             children = children[0]
 
-        if props is None:
-            props = {}
+        props = props or {}
 
-        if not type_:
-            elt = DOM.create_document_fragment()
+        if 'className' in props:
+            props['class'] = props.pop('className')
+
+        if 'xlink:href' in props:
+            props['{%s}href' % XLINK] = props.pop('xlink:href')
+
+        if inspect.isclass(type_):
+            elt = type_().render(props)
         else:
-            attributes = {}
-
-            # Map props from React/Draft.js to HTML lingo.
-            if 'className' in props:
-                props['class'] = props.pop('className')
-
-            for key in props:
-                prop = props[key]
-                # Filter None values.
-                if prop is not None:
-                    attributes[key] = prop
-
-            # "type" is either an entity with a render method, or a tag name.
-            if inspect.isclass(type_):
-                elt = type_().render(attributes)
-            else:
-                elt = DOM.create_tag(type_, attributes)
+            attributes = {k: str(v) for k, v in props.items() if v is not None}
+            elt = DOM.create_tag(type_, attributes)
 
         for child in children:
-            if child:
-                if hasattr(child, 'tag'):
-                    DOM.append_child(elt, child)
-                else:
-                    DOM.set_text_content(elt, DOM.get_text_content(elt) + child if DOM.get_text_content(elt) else child)
+            DOM.append_child(elt, child)
 
         return elt
 
@@ -91,50 +72,59 @@ class DOM(object):
 
     @staticmethod
     def parse_html(markup):
-        return Soup(markup)
+        return html.fromstring(markup)
 
     @staticmethod
     def append_child(elt, child):
-        elt.append(child)
+        if child not in (None, ''):
+            if hasattr(child, 'tag'):
+                elt.append(child)
+            else:
+                elt_text = DOM.get_text_content(elt) or ''
+                DOM.set_text_content(elt, "%s%s" % (elt_text, child))
 
     @staticmethod
     def set_attribute(elt, attr, value):
-        elt[attr] = value
+        elt.set(attr, value)
 
     @staticmethod
     def get_tag_name(elt):
-        return elt.name
+        return elt.tag
 
     @staticmethod
     def get_class_list(elt):
-        return elt.get('class', [])
+        class_name = elt.get('class')
+        return re.split('\ +', class_name) if class_name else []
 
     @staticmethod
     def get_text_content(elt):
-        return elt.string
+        return ''.join(elt.itertext())
 
     @staticmethod
     def set_text_content(elt, text):
-        elt.string = text
+        elt.text = text
 
     @staticmethod
     def get_children(elt):
-        return list(elt.children)
+        return elt.getchildren()
 
     @staticmethod
     def render(elt):
         """
-        Removes the fragments that should not have HTML tags. Left-over from
-        when this library relied on the lxml HTTP parser. There might be a
-        better way to do this.
+        Removes the fragments that should not have HTML tags. Caveat of lxml.
         Dirty, but quite easy to understand.
         """
-        return re.sub(r'</?(fragment|textnode|body|html|head)>', '', unicode(Soup(unicode(elt)))).strip()
+        return re.sub(r'</?(fragment|textnode)>', '',
+                      etree.tostring(elt, method='html').decode('utf-8'))
 
     @staticmethod
     def pretty_print(markup):
         """
         Convenience method.
-        Pretty print the element, removing the top-level nodes that html5lib adds.
+        Pretty print the element, removing the top-level node that lxml needs.
         """
-        return re.sub(r'</?(body|html|head)>', '', Soup(markup).prettify()).strip()
+        return re.sub(r'</?doc>', '',
+                      etree.tostring(
+                          html.fromstring('<doc>%s</doc>' % markup),
+                          encoding='unicode',
+                          pretty_print=True))

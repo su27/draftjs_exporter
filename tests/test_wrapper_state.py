@@ -24,7 +24,7 @@ class TestWrapperState(unittest.TestCase):
             'depth': 0,
             'inlineStyleRanges': [],
             'entityRanges': []
-        })), None)
+        })), '')
 
     def test_element_for_tag(self):
         self.assertEqual(DOM.get_tag_name(self.wrapper_state.element_for({

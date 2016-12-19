@@ -25,7 +25,7 @@ class URLDecorator:
         url = match.group(2)
         href = protocol + url
         if block_type == BLOCK_TYPES.CODE:
-            return href
+            return DOM.create_text_node(href)
 
         text = cgi.escape(href)
         if href.startswith("www"):
