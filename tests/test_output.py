@@ -336,28 +336,6 @@ class TestOutput(unittest.TestCase):
             ],
         }), '<ul><li>item1</li></ul>')
 
-    def test_render_with_unknown_attribute(self):
-        self.assertEqual(HTML({
-            'block_map': dict(BLOCK_MAP, **{
-                BLOCK_TYPES.UNORDERED_LIST_ITEM: {
-                    'element': 'li',
-                    'wrapper': ['ul', {'*ngFor': 'test'}],
-                },
-            })
-        }).render({
-            'entityMap': {},
-            'blocks': [
-                {
-                    'key': 'dem1p',
-                    'text': 'item1',
-                    'type': 'unordered-list-item',
-                    'depth': 0,
-                    'inlineStyleRanges': [],
-                    'entityRanges': []
-                },
-            ],
-        }), '<ul *ngfor="test"><li>item1</li></ul>')
-
     def test_render_with_element_options(self):
         self.assertEqual(HTML({
             'block_map': dict(BLOCK_MAP, **{
