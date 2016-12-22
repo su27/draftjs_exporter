@@ -11,6 +11,11 @@ class Null:
         return DOM.create_element()
 
 
+class HR:
+    def render(self, props):
+        return DOM.create_element('hr')
+
+
 class Link:
 
     def render(self, props):
