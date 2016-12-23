@@ -13,7 +13,7 @@ class Enum(object):
         return name
 
 
-# https://github.com/draft-js-utils/draft-js-utils/blob/master/src/Constants.js
+# https://github.com/facebook/draft-js/blob/master/src/model/constants/DraftBlockType.js
 class BLOCK_TYPES:
     UNSTYLED = 'unstyled'
     HEADER_ONE = 'header-one'
@@ -25,12 +25,10 @@ class BLOCK_TYPES:
     UNORDERED_LIST_ITEM = 'unordered-list-item'
     ORDERED_LIST_ITEM = 'ordered-list-item'
     BLOCKQUOTE = 'blockquote'
-    PULLQUOTE = 'pullquote'
     CODE = 'code-block'
     ATOMIC = 'atomic'
-    HORIZONTAL_RULE = 'horizontal-rule'
 
 
-ENTITY_TYPES = Enum('LINK', 'IMAGE', 'TOKEN')
+ENTITY_TYPES = Enum('LINK', 'IMAGE', 'HORIZONTAL_RULE')
 
 INLINE_STYLES = Enum('BOLD', 'CODE', 'ITALIC', 'STRIKETHROUGH', 'UNDERLINE')
