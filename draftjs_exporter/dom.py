@@ -57,7 +57,7 @@ class DOM(object):
         if inspect.isclass(type_):
             elt = type_().render(props)
         else:
-            attributes = {k: str(v) for k, v in props.items() if v is not None}
+            attributes = {k: clean_str(str(v)) for k, v in props.items() if v is not None}
             elt = DOM.create_tag(type_, attributes)
 
         for child in children:
