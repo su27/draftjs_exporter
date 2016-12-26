@@ -16,6 +16,11 @@ except NameError:
         return str(s)
 
 
+def clean_str(string):
+    # See http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+    return re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\u10000-\u10FFFF]+', '', string)
+
+
 class DOM(object):
     """
     Wrapper around our HTML building library to facilitate changes.
@@ -102,7 +107,10 @@ class DOM(object):
 
     @staticmethod
     def set_text_content(elt, text):
-        elt.text = text
+        try:
+            elt.text = text
+        except ValueError:
+            elt.text = clean_str(text)
 
     @staticmethod
     def get_children(elt):
