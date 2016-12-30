@@ -16,9 +16,14 @@ except NameError:
         return str(s)
 
 
-def clean_str(string):
-    # See http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
-    return re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\u10000-\u10FFFF]+', '', string)
+def clean_str(s):
+    if not isinstance(s, basestring):
+        s = unicode(s)
+
+    elif not isinstance(s, unicode):
+        s = s.decode('utf8')
+        # See http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+    return re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\u10000-\u10FFFF]+', '', s)
 
 
 class DOM(object):
@@ -57,7 +62,10 @@ class DOM(object):
         if inspect.isclass(type_):
             elt = type_().render(props)
         else:
-            attributes = {k: clean_str(str(v)) for k, v in props.items() if v is not None}
+            try:
+                attributes = {k: unicode(v) for k, v in props.items() if v is not None}
+            except:
+                attributes = {k: clean_str(v) for k, v in props.items() if v is not None}
             elt = DOM.create_tag(type_, attributes)
 
         for child in children:
@@ -86,7 +94,11 @@ class DOM(object):
                 elt.append(child)
             else:
                 elt_text = DOM.get_text_content(elt) or ''
-                DOM.set_text_content(elt, "%s%s" % (elt_text, child))
+                try:
+                    elt_text += child
+                except:
+                    elt_text += clean_str(child)
+                DOM.set_text_content(elt, elt_text)
 
     @staticmethod
     def set_attribute(elt, attr, value):
@@ -109,7 +121,7 @@ class DOM(object):
     def set_text_content(elt, text):
         try:
             elt.text = text
-        except ValueError:
+        except:
             elt.text = clean_str(text)
 
     @staticmethod
@@ -123,7 +135,7 @@ class DOM(object):
         Dirty, but quite easy to understand.
         """
         return re.sub(r'</?(fragment|textnode)>', '',
-                      etree.tostring(elt, method='html').decode('utf-8'))
+                      etree.tostring(elt, method='html', encoding='unicode'))
 
     @staticmethod
     def pretty_print(markup):

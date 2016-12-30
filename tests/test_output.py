@@ -81,7 +81,7 @@ class TestOutput(unittest.TestCase):
                     'entityRanges': []
                 }
             ]
-        }), '<p>Emojis! &#127866;</p>')
+        }), '<p>Emojis! \U0001f37a</p>')
 
     def test_render_with_inline_styles(self):
         self.assertEqual(self.exporter.render({
